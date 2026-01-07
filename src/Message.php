@@ -142,7 +142,7 @@ final class Message extends Message\AbstractMessage implements MessageInterface
     {
         if (null === $this->headers) {
             // Changed original behavior => imap_headerinfo() is not used as working with non-uid is buggy
-            $headers = \imap_rfc822_parse_headers(imap_fetchheader($this->resource->getStream(), $this->getNumber(), \FT_UID));
+            $headers = \imap_fetchheader($this->resource->getStream(), $this->getNumber(), \FT_UID);
             if (!$headers) {
                 // @see https://github.com/ddeboer/imap/issues/358
                 throw new InvalidHeadersException(\sprintf('Message "%s" has invalid headers', $this->getNumber()));
@@ -154,6 +154,7 @@ final class Message extends Message\AbstractMessage implements MessageInterface
                 throw new InvalidHeadersException(\sprintf('Message "%s" has invalid overview', $this->getNumber()));
             }
 
+            $headers = \imap_rfc822_parse_headers($headers;
             $item = $overview[0];
 
             $headers->Recent = ($item->recent == 1) ? (($item->seen == 0) ? "N" : "R") : " ";
