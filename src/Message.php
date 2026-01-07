@@ -150,22 +150,21 @@ final class Message extends Message\AbstractMessage implements MessageInterface
 
             // Add flags that were present via original imap_headerinfo() call but are missing via imap_fetchheader()
             $overview = imap_fetch_overview($this->resource->getStream(), strval($this->getNumber()), FT_UID);
+            $overview = $overview[0] ?? null;
             if (!$overview) {
                 throw new InvalidHeadersException(\sprintf('Message "%s" has invalid overview', $this->getNumber()));
             }
 
-            $headers = \imap_rfc822_parse_headers($headers;
-            $item = $overview[0];
-
-            $headers->Recent = ($item->recent == 1) ? (($item->seen == 0) ? "N" : "R") : " ";
-            $headers->Unseen = ($item->seen == 0) ? "U" : " ";
-            $headers->Flagged  = ($item->flagged == 1) ? "F" : " ";
-            $headers->Answered = ($item->answered == 1) ? "A" : " ";
-            $headers->Deleted  = ($item->deleted == 1) ? "D" : " ";
-            $headers->Draft    = ($item->draft == 1) ? "X" : " ";
-            $headers->msgno     = $item->msgno;
-            $headers->size     = $item->size;
-            $headers->udate    = $item->udate;
+            $headers           = \imap_rfc822_parse_headers($headers);
+            $headers->Recent   = ($overview->recent == 1) ? (($overview->seen == 0) ? "N" : "R") : " ";
+            $headers->Unseen   = ($overview->seen == 0) ? "U" : " ";
+            $headers->Flagged  = ($overview->flagged == 1) ? "F" : " ";
+            $headers->Answered = ($overview->answered == 1) ? "A" : " ";
+            $headers->Deleted  = ($overview->deleted == 1) ? "D" : " ";
+            $headers->Draft    = ($overview->draft == 1) ? "X" : " ";
+            $headers->msgno    = $overview->msgno;
+            $headers->size     = $overview->size;
+            $headers->udate    = $overview->udate;
 
             $this->headers = new Message\Headers($headers);
         }
