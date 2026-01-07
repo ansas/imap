@@ -141,14 +141,31 @@ final class Message extends Message\AbstractMessage implements MessageInterface
     public function getHeaders(): Message\Headers
     {
         if (null === $this->headers) {
-            // imap_headerinfo is much faster than imap_fetchheader
-            // imap_headerinfo returns only a subset of all mail headers,
-            // but it does include the message flags.
-            $headers = \imap_headerinfo($this->resource->getStream(), $this->getMsgNo());
-            if (false === $headers) {
+            // Changed original behavior => imap_headerinfo() is not used as working with non-uid is buggy
+            $headers = \imap_rfc822_parse_headers(imap_fetchheader($this->resource->getStream(), $this->getNumber(), \FT_UID));
+            if (!$headers) {
                 // @see https://github.com/ddeboer/imap/issues/358
                 throw new InvalidHeadersException(\sprintf('Message "%s" has invalid headers', $this->getNumber()));
             }
+
+            // Add flags that were present via original imap_headerinfo() call but are missing via imap_fetchheader()
+            $overview = imap_fetch_overview($this->resource->getStream(), strval($this->getNumber()), FT_UID);
+            if (!$overview) {
+                throw new InvalidHeadersException(\sprintf('Message "%s" has invalid overview', $this->getNumber()));
+            }
+
+            $item = $overview[0];
+
+            $headers->Recent = ($item->recent == 1) ? (($item->seen == 0) ? "N" : "R") : " ";
+            $headers->Unseen = ($item->seen == 0) ? "U" : " ";
+            $headers->Flagged  = ($item->flagged == 1) ? "F" : " ";
+            $headers->Answered = ($item->answered == 1) ? "A" : " ";
+            $headers->Deleted  = ($item->deleted == 1) ? "D" : " ";
+            $headers->Draft    = ($item->draft == 1) ? "X" : " ";
+            $headers->msgno     = $item->msgno;
+            $headers->size     = $item->size;
+            $headers->udate    = $item->udate;
+
             $this->headers = new Message\Headers($headers);
         }
 
