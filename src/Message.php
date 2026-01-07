@@ -141,15 +141,11 @@ final class Message extends Message\AbstractMessage implements MessageInterface
     public function getHeaders(): Message\Headers
     {
         if (null === $this->headers) {
-            // Changed original behavior => imap_headerinfo() is not used as working with non-uid is buggy
-            $headers = \imap_fetchheader($this->resource->getStream(), $this->getNumber(), \FT_UID);
-            if (!$headers) {
-                // @see https://github.com/ddeboer/imap/issues/358
-                throw new InvalidHeadersException(\sprintf('Message "%s" has invalid headers', $this->getNumber()));
-            }
+            // Changed original behavior => imap_headerinfo() is not used anymore as working with non-uid is buggy
+            $headers = $this->getRawHeaders();
 
             // Add flags that were present via original imap_headerinfo() call but are missing via imap_fetchheader()
-            $overview = imap_fetch_overview($this->resource->getStream(), strval($this->getNumber()), FT_UID);
+            $overview = @\imap_fetch_overview($this->resource->getStream(), strval($this->getNumber()), FT_UID);
             $overview = $overview[0] ?? null;
             if (!$overview) {
                 throw new InvalidHeadersException(\sprintf('Message "%s" has invalid overview', $this->getNumber()));
